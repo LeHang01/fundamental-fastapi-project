@@ -12,7 +12,7 @@ def get_product_by_id(db: Session, product_id: int):
 
 
 def create_product(db: Session, product: ProductSchema):
-    _product = Product(title=product.title, description=product.description)
+    _product = Product(name=product.name, title=product.title, description=product.description, price=product.price, stock_quantity=product.stock_quantity)
     db.add(_product)
     db.commit()
     db.refresh(_product)
@@ -25,11 +25,14 @@ def remove_product(db: Session, product_id: int):
     db.commit()
 
 
-def update_product(db: Session, product_id: int, title: str, description: str):
+def update_product(db: Session, product_id: int, product: ProductSchema):
     _product = get_product_by_id(db=db, product_id=product_id)
 
-    _product.title = title
-    _product.description = description
+    _product.name = product.name
+    _product.title = product.title
+    _product.description = product.description
+    _product.price = product.price
+    _product.stock_quantity = product.stock_quantity
 
     db.commit()
     db.refresh(_product)

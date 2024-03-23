@@ -26,12 +26,19 @@ class TokenResponse(BaseModel):
 
 class ProductSchema(BaseModel):
     id: Optional[int] = None
+    name: Optional[str] = None
     title: Optional[str] = None
     description: Optional[str] = None
+    price: Optional[float] = None
+    stock_quantity: Optional[int] = None
 
     class Config:
         orm_mode = True
 
+class OrderCreateSchema(BaseModel):
+    user_id: int
+    product_id: int
+    quantity: int
 
 class Request(GenericModel, Generic[T]):
     parameter: Optional[T] = Field(...)

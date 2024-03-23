@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Path
-from app.schema import RequestSchema, ResponseSchema, TokenResponse, ProductSchema, Request, Response, RequestProduct
+from app.schema import RequestSchema, ResponseSchema, TokenResponse, ProductSchema, Request, Response, RequestProduct, OrderCreateSchema
 from sqlalchemy.orm import Session
 from app.config import get_db, ACCESS_TOKEN_EXPIRE_MINUTES, SessionLocal
 from passlib.context import CryptContext
 from app.repository import JWTRepo, JWTBearer, UsersRepo
 from app.model import Users
+from app.order import create_order
 from datetime import datetime, timedelta
 from app import crud
 
@@ -94,7 +95,9 @@ async def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(ge
 @pro_router.patch("/update")
 async def update_product(request: RequestProduct, db: Session = Depends(get_db)):
     _product = crud.update_product(db, product_id=request.parameter.id,
-                             title=request.parameter.title, description=request.parameter.description)
+                                   name=request.parameter.name,
+                             title=request.parameter.title, description=request.parameter.description, price=request.parameter.price,
+                             stock_quantity=request.parameter.stock_quantity)
     return Response(status="Ok", code="200", message="Success update data", result=_product)
 
 
@@ -102,3 +105,14 @@ async def update_product(request: RequestProduct, db: Session = Depends(get_db))
 async def delete_product(request: RequestProduct,  db: Session = Depends(get_db)):
     crud.remove_product(db, product_id=request.parameter.id)
     return Response(status="Ok", code="200", message="Success delete data").dict(exclude_none=True)
+
+
+order_router = APIRouter()
+
+@order_router.post("/orders/")
+async def create_order_route(order_data: OrderCreateSchema, db: Session = Depends(get_db)):
+    try:
+        order = create_order(db, user_id=order_data.user_id, product_id=order_data.product_id, quantity=order_data.quantity)
+        return {"message": "Order created successfully", "order": order}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
