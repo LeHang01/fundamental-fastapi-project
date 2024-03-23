@@ -19,14 +19,8 @@ class Users(Base):
     
     create_date = Column(DateTime, default=datetime.datetime.now())
     update_date = Column(DateTime)
+    payments = relationship("Payment", back_populates="user")
     orders = relationship("Order", back_populates="user")
-
-# class Book(Base):
-#     __tablename__ ="book"
-
-#     id = Column(Integer, primary_key=True, index=True)
-#     title = Column(String)
-#     description = Column(String)
 
 class Product(Base):
     __tablename__ = 'products'

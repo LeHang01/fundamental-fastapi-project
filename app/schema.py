@@ -10,7 +10,12 @@ class Parameter(BaseModel):
 
 
 class RequestSchema(BaseModel):
-    parameter: Parameter = Field(...)
+    username: str
+    password: str
+    email: str
+    phone_number: str    
+    first_name: str
+    last_name: str
 
 
 class ResponseSchema(BaseModel):
@@ -25,12 +30,12 @@ class TokenResponse(BaseModel):
 
 
 class ProductSchema(BaseModel):
-    id: Optional[int] = None
-    name: Optional[str] = None
-    title: Optional[str] = None
-    description: Optional[str] = None
-    price: Optional[float] = None
-    stock_quantity: Optional[int] = None
+    id: int
+    name: str
+    title: str
+    description: str
+    price: float
+    stock_quantity: int
 
     class Config:
         orm_mode = True

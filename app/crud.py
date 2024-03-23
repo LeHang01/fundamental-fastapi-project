@@ -24,7 +24,6 @@ def remove_product(db: Session, product_id: int):
     db.delete(_product)
     db.commit()
 
-
 def update_product(db: Session, product_id: int, product: ProductSchema):
     _product = get_product_by_id(db=db, product_id=product_id)
 
@@ -37,3 +36,4 @@ def update_product(db: Session, product_id: int, product: ProductSchema):
     db.commit()
     db.refresh(_product)
     return _product
+

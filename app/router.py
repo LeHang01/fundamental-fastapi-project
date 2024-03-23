@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.config import get_db, ACCESS_TOKEN_EXPIRE_MINUTES, SessionLocal
 from passlib.context import CryptContext
 from app.repository import JWTRepo, JWTBearer, UsersRepo
-from app.model import Users
+from app.model import Users, Product
 from app.order import create_order
 from app.payment import PaymentRepo
 from datetime import datetime, timedelta
@@ -20,38 +20,60 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     Authentication Router
 
 """
-
-
 @auth_router.post('/signup')
 async def signup(request: RequestSchema, db: Session = Depends(get_db)):
     try:
-        # insert user to db
-        _user = Users(username=request.parameter.data["username"],
-                      email=request.parameter.data["email"],
-                      phone_number=request.parameter.data["phone_number"],
-                      password=pwd_context.hash(
-                          request.parameter.data["password"]),
-                      first_name=request.parameter.data['first_name'],
-                      last_name=request.parameter.data['last_name'])
+        existing_user = UsersRepo.find_by_username(db, Users, request.username)
+        if existing_user:
+            # Nếu đã có tài khoản với username này, trả về lỗi
+            return ResponseSchema(
+                code="400",
+                status="Bad Request",
+                message="Username already exists"
+            ).dict(exclude_none=True)
+
+        # Tạo và thêm tài khoản mới nếu username không trùng
+        _user = Users(
+            username=request.username,
+            email=request.email,
+            phone_number=request.phone_number,
+            password=pwd_context.hash(request.password),
+            first_name=request.first_name,
+            last_name=request.last_name
+        )
         UsersRepo.insert(db, _user)
-        return ResponseSchema(code="200", status="Ok", message="Success save data").dict(exclude_none=True)
+        
+        return ResponseSchema(
+            code="200",
+            status="Ok",
+            message="Success save data"
+        ).dict(exclude_none=True)
     except Exception as error:
         print(error.args)
-        return ResponseSchema(code="500", status="Error", message="Internal Server Error").dict(exclude_none=True)
+        return ResponseSchema(
+            code="500",
+            status="Error",
+            message="Internal Server Error"
+        ).dict(exclude_none=True)
 
 
 @auth_router.post('/login')
 async def login(request: RequestSchema, db: Session = Depends(get_db)):
     try:
-       # find user by username
-        _user = UsersRepo.find_by_username(
-            db, Users, request.parameter.data["username"])
+        # Lấy thông tin đăng nhập từ yêu cầu
+        username = request.username
+        password = request.password
 
-        if not pwd_context.verify(request.parameter.data["password"], _user.password):
-            return ResponseSchema(code="400", status="Bad Request", message="Invalid password").dict(exclude_none=True)
+        # Tìm người dùng dựa trên tên người dùng (username)
+        _user = UsersRepo.find_by_username(db, Users, username)
 
+        # Kiểm tra mật khẩu
+        if not _user or not pwd_context.verify(password, _user.password):
+            return ResponseSchema(code="400", status="Bad Request", message="Invalid username or password").dict(exclude_none=True)
+
+        # Tạo và trả về mã thông báo (token)
         token = JWTRepo.generate_token({"sub": _user.username})
-        return ResponseSchema(code="200", status="OK", message="success login!", result=TokenResponse(access_token=token, token_type="Bearer")).dict(exclude_none=True)
+        return ResponseSchema(code="200", status="OK", message="Success login!", result=TokenResponse(access_token=token, token_type="Bearer")).dict(exclude_none=True)
     except Exception as error:
         error_message = str(error.args)
         print(error_message)
@@ -82,9 +104,8 @@ pro_router = APIRouter()
 @pro_router.post("/create")
 async def create_product_service(request: RequestProduct, db: Session = Depends(get_db)):
     crud.create_product(db, product=request.parameter)
-    return Response(status="Ok",
-                    code="200",
-                    message="product created successfully").dict(exclude_none=True)
+    return Response(status="Ok", code="200", message="product created successfully", result={}).dict(exclude_none=True)
+
 
 
 @pro_router.get("/")
@@ -92,20 +113,26 @@ async def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(ge
     _products = crud.get_product(db, skip, limit)
     return Response(status="Ok", code="200", message="Success fetch all data", result=_products)
 
-
 @pro_router.patch("/update")
 async def update_product(request: RequestProduct, db: Session = Depends(get_db)):
-    _product = crud.update_product(db, product_id=request.parameter.id,
-                                   name=request.parameter.name,
-                             title=request.parameter.title, description=request.parameter.description, price=request.parameter.price,
-                             stock_quantity=request.parameter.stock_quantity)
-    return Response(status="Ok", code="200", message="Success update data", result=_product)
+    _product = crud.update_product(
+        db,
+        product_id=request.parameter.id,
+        product=request.parameter
+    )
+    return Response(
+        status="Ok",
+        code="200",
+        message="Success update data",
+        result=_product
+    ).dict(exclude_none=True)
+
 
 
 @pro_router.delete("/delete")
 async def delete_product(request: RequestProduct,  db: Session = Depends(get_db)):
     crud.remove_product(db, product_id=request.parameter.id)
-    return Response(status="Ok", code="200", message="Success delete data").dict(exclude_none=True)
+    return ResponseSchema(code="200", status="Ok", message="Success delete data", result={})
 
 
 order_router = APIRouter()
