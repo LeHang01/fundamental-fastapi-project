@@ -19,6 +19,7 @@ class Users(Base):
     
     create_date = Column(DateTime, default=datetime.datetime.now())
     update_date = Column(DateTime)
+    orders = relationship("Order", back_populates="user")
 
 # class Book(Base):
 #     __tablename__ ="book"
@@ -36,6 +37,7 @@ class Product(Base):
     description = Column(String)
     price = Column(Float)
     stock_quantity = Column(Integer)
+    orders = relationship("Order", back_populates="product")
 
 class Payment(Base):
     __tablename__ = 'payments'
@@ -57,6 +59,7 @@ class Order(Base):
     quantity = Column(Integer)
     total_price = Column(Float)
     order_date = Column(DateTime, default=datetime.datetime.now())
+    payment_status = Column(String, default="unpaid")
 
     user = relationship("Users", back_populates="orders")
     product = relationship("Product", back_populates="orders")

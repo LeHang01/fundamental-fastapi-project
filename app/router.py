@@ -6,6 +6,7 @@ from passlib.context import CryptContext
 from app.repository import JWTRepo, JWTBearer, UsersRepo
 from app.model import Users
 from app.order import create_order
+from app.payment import PaymentRepo
 from datetime import datetime, timedelta
 from app import crud
 
@@ -113,6 +114,7 @@ order_router = APIRouter()
 async def create_order_route(order_data: OrderCreateSchema, db: Session = Depends(get_db)):
     try:
         order = create_order(db, user_id=order_data.user_id, product_id=order_data.product_id, quantity=order_data.quantity)
+        PaymentRepo.update_payment_status(db, order.id, "pending")
         return {"message": "Order created successfully", "order": order}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
