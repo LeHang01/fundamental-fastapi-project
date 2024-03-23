@@ -1,6 +1,7 @@
 import email
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Float, ForeignKey, Integer, String, Boolean, DateTime
 from app.config import Base
+from sqlalchemy.orm import relationship
 import datetime
 
 
@@ -18,3 +19,44 @@ class Users(Base):
     
     create_date = Column(DateTime, default=datetime.datetime.now())
     update_date = Column(DateTime)
+
+# class Book(Base):
+#     __tablename__ ="book"
+
+#     id = Column(Integer, primary_key=True, index=True)
+#     title = Column(String)
+#     description = Column(String)
+
+class Product(Base):
+    __tablename__ = 'products'
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    title = Column(String)
+    description = Column(String)
+    price = Column(Float)
+    stock_quantity = Column(Integer)
+
+class Payment(Base):
+    __tablename__ = 'payments'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    amount = Column(Float)
+    status = Column(String)
+    payment_method = Column(String)
+
+    user = relationship("Users", back_populates="payments")
+
+class Order(Base):
+    __tablename__ = 'orders'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    product_id = Column(Integer, ForeignKey('products.id'))
+    quantity = Column(Integer)
+    total_price = Column(Float)
+    order_date = Column(DateTime, default=datetime.datetime.now())
+
+    user = relationship("Users", back_populates="orders")
+    product = relationship("Product", back_populates="orders")

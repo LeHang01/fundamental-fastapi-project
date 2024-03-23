@@ -1,13 +1,14 @@
-from fastapi import APIRouter, Depends
-from app.schema import RequestSchema, ResponseSchema, TokenResponse
+from fastapi import APIRouter, Depends, HTTPException, Path
+from app.schema import RequestSchema, ResponseSchema, TokenResponse, ProductSchema, Request, Response, RequestProduct
 from sqlalchemy.orm import Session
-from app.config import get_db, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.config import get_db, ACCESS_TOKEN_EXPIRE_MINUTES, SessionLocal
 from passlib.context import CryptContext
 from app.repository import JWTRepo, JWTBearer, UsersRepo
 from app.model import Users
 from datetime import datetime, timedelta
+from app import crud
 
-router = APIRouter()
+auth_router = APIRouter()
 
 # encrypt password
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -19,7 +20,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 """
 
 
-@router.post('/signup')
+@auth_router.post('/signup')
 async def signup(request: RequestSchema, db: Session = Depends(get_db)):
     try:
         # insert user to db
@@ -37,7 +38,7 @@ async def signup(request: RequestSchema, db: Session = Depends(get_db)):
         return ResponseSchema(code="500", status="Error", message="Internal Server Error").dict(exclude_none=True)
 
 
-@router.post('/login')
+@auth_router.post('/login')
 async def login(request: RequestSchema, db: Session = Depends(get_db)):
     try:
        # find user by username
@@ -61,7 +62,43 @@ async def login(request: RequestSchema, db: Session = Depends(get_db)):
 """
 
 
-@router.get("/users", dependencies=[Depends(JWTBearer())])
+@auth_router.get("/users", dependencies=[Depends(JWTBearer())])
 async def retrieve_all(db: Session = Depends(get_db)):
     _user = UsersRepo.retrieve_all(db, Users)
     return ResponseSchema(code="200", status="Ok", message="Sucess retrieve data", result=_user).dict(exclude_none=True)
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+pro_router = APIRouter()
+@pro_router.post("/create")
+async def create_product_service(request: RequestProduct, db: Session = Depends(get_db)):
+    crud.create_product(db, product=request.parameter)
+    return Response(status="Ok",
+                    code="200",
+                    message="product created successfully").dict(exclude_none=True)
+
+
+@pro_router.get("/")
+async def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    _products = crud.get_product(db, skip, limit)
+    return Response(status="Ok", code="200", message="Success fetch all data", result=_products)
+
+
+@pro_router.patch("/update")
+async def update_product(request: RequestProduct, db: Session = Depends(get_db)):
+    _product = crud.update_product(db, product_id=request.parameter.id,
+                             title=request.parameter.title, description=request.parameter.description)
+    return Response(status="Ok", code="200", message="Success update data", result=_product)
+
+
+@pro_router.delete("/delete")
+async def delete_product(request: RequestProduct,  db: Session = Depends(get_db)):
+    crud.remove_product(db, product_id=request.parameter.id)
+    return Response(status="Ok", code="200", message="Success delete data").dict(exclude_none=True)
