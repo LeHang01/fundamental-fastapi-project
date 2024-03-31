@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from app.config import engine
 from app.router import auth_router, pro_router, order_router
-from app import model
+from app import models
 
 # generate model to table postgresql
-model.Base.metadata.create_all(bind=engine)
+models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
